@@ -1,0 +1,25 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "concierge_greeting",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Hello, how can you help me find a book today?"}]
+      }
+    },
+    {
+      "eval_case_id": "sci_fi_recommendation",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "I loved Project Hail Mary. Can you recommend 3 books that have a similar optimistic or sci-fi feel?"}]
+      }
+    },
+    {
+      "eval_case_id": "cozy_reads",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "I'm feeling stressed and want a cozy, uplifting fantasy book that isn't too long."}]
+      }
+    }
+  ]
+}

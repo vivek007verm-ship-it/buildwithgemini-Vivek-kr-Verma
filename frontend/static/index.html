@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Concierge — AI Personal Librarian</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #064e3b 0%, #0f172a 60%, #1e1b4b 100%);
+      --panel-bg: rgba(15, 23, 42, 0.75);
+      --panel-border: rgba(16, 185, 129, 0.2);
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-purple: #8b5cf6;
+      --user-msg-bg: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+      --agent-msg-bg: rgba(30, 41, 59, 0.85);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    header {
+      padding: 1rem 2rem;
+      background: rgba(6, 78, 59, 0.6);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent-emerald), var(--accent-amber));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.3rem;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    }
+
+    .brand-title h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .brand-title p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .session-badge {
+      font-size: 0.75rem;
+      padding: 0.35rem 0.75rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--panel-border);
+      padding: 0.45rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.825rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem;
+      overflow: hidden;
+    }
+
+    /* Chat Messages Box */
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      scroll-behavior: smooth;
+    }
+
+    .chat-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat-container::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+    }
+
+    /* Welcome Card */
+    .welcome-card {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      margin: auto 0;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .welcome-card h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #34d399, #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .welcome-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 500px;
+      margin: 0 auto 1.5rem auto;
+      line-height: 1.5;
+    }
+
+    .suggestion-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .chip:hover {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: rgba(16, 185, 129, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* Enhanced Dialogue Layout */
+    .message-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      max-width: 82%;
+      animation: messageSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes messageSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .message-wrapper.user {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .message-wrapper.agent {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .message-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      padding: 0 0.35rem;
+    }
+
+    .user .message-meta {
+      flex-direction: row-reverse;
+    }
+
+    .meta-badge {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      padding: 0.1rem 0.45rem;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .agent .meta-badge {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .message-content-container {
+      display: flex;
+      gap: 0.65rem;
+      align-items: flex-start;
+      width: 100%;
+    }
+
+    .user .message-content-container {
+      flex-direction: row-reverse;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .user .avatar {
+      background: linear-gradient(135deg, #059669, #0d9488);
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.35);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+    }
+
+    .agent .avatar {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
+      border: 1px solid rgba(251, 191, 36, 0.4);
+    }
+
+    .message-bubble {
+      padding: 0.95rem 1.25rem;
+      border-radius: 16px;
+      font-size: 0.935rem;
+      line-height: 1.65;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      position: relative;
+    }
+
+    .user .message-bubble {
+      background: linear-gradient(135deg, rgba(5, 150, 105, 0.95), rgba(13, 148, 136, 0.95));
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      border-top-right-radius: 4px;
+      color: #ffffff;
+    }
+
+    .agent .message-bubble {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--panel-border);
+      border-top-left-radius: 4px;
+      backdrop-filter: blur(12px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .message-bubble p {
+      margin-bottom: 0.5rem;
+    }
+    .message-bubble p:last-child {
+      margin-bottom: 0;
+    }
+
+    .message-bubble blockquote {
+      border-left: 3px solid var(--accent-emerald);
+      margin: 0.6rem 0;
+      padding-left: 0.85rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .message-bubble table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0;
+      font-size: 0.875rem;
+    }
+
+    .message-bubble th, .message-bubble td {
+      border: 1px solid var(--panel-border);
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+    }
+
+    .message-bubble th {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      font-weight: 600;
+    }
+
+    .message-bubble tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .message-bubble code {
+      background: rgba(0, 0, 0, 0.35);
+      padding: 0.2rem 0.45rem;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85em;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .message-bubble img {
+      max-width: 100%;
+      max-height: 380px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin: 0.65rem 0;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      cursor: zoom-in;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      display: block;
+    }
+
+    .message-bubble img:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 32px rgba(16, 185, 129, 0.35);
+    }
+
+    .message-bubble pre {
+      background: rgba(15, 23, 42, 0.9);
+      padding: 0.85rem;
+      border-radius: 10px;
+      overflow-x: auto;
+      margin: 0.6rem 0;
+      border: 1px solid var(--panel-border);
+    }
+
+    /* Lightbox Modal */
+    .lightbox-modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .lightbox-modal.active {
+      display: flex;
+    }
+
+    .lightbox-content {
+      position: relative;
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .lightbox-content img {
+      max-width: 100%;
+      max-height: 80vh;
+      border-radius: 14px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(16, 185, 129, 0.5);
+    }
+
+    .lightbox-caption {
+      margin-top: 0.85rem;
+      color: var(--text-main);
+      font-size: 0.925rem;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: -40px;
+      right: -10px;
+      font-size: 2.2rem;
+      color: white;
+      cursor: pointer;
+      line-height: 1;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+    }
+
+    .lightbox-close:hover {
+      opacity: 1;
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 0.5rem 0;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      animation: pulse 1.4s infinite ease-in-out both;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes pulse {
+      0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Input Box */
+    .input-area {
+      margin-top: 1rem;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 0.5rem 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    }
+
+    .input-area textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.95rem;
+      resize: none;
+      max-height: 120px;
+      padding: 0.4rem 0.25rem;
+    }
+
+    .input-area textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    .btn-send {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent-emerald), var(--accent-amber));
+      border: none;
+      border-radius: 10px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .btn-send:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+    }
+
+    .btn-send:disabled {
+      opacity: 0.5;
+      transform: none;
+      cursor: not-allowed;
+    }
+
+    .btn-send svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    /* Quick Example Prompts Bar above Input */
+    .quick-prompts-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      margin-bottom: 0.5rem;
+      overflow-x: auto;
+      padding: 0.25rem 0.1rem;
+    }
+
+    .quick-prompts-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .prompt-pill {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--panel-border);
+      color: var(--text-main);
+      padding: 0.5rem 0.85rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    .prompt-pill:hover {
+      background: rgba(16, 185, 129, 0.22);
+      border-color: rgba(16, 185, 129, 0.5);
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-logo">📚</div>
+      <div class="brand-title">
+        <h1>Book Concierge</h1>
+        <p>AI Personal Librarian & Reading Assistant</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div id="sessionBadge" class="session-badge">Session: New</div>
+      <button class="btn-secondary" onclick="resetSession()">New Chat</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="chatContainer" class="chat-container">
+      <div id="welcomeCard" class="welcome-card">
+        <h2>Welcome to Book Concierge!</h2>
+        <p>Your intelligent reading assistant powered by Vertex AI Agent Platform & Memory Bank.</p>
+        <div class="suggestion-chips">
+          <div class="chip" onclick="sendSuggestion('Recommend 3 sci-fi masterpieces with rich world-building')">🚀 Sci-Fi Masterpieces</div>
+          <div class="chip" onclick="sendSuggestion('Find classic novels for a cozy autumn evening')">🍂 Cozy Classics</div>
+          <div class="chip" onclick="sendSuggestion('What books do you remember I like?')">🧠 Remembered Preferences</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-prompts-bar">
+      <button class="prompt-pill" onclick="sendSuggestion('Recommend a mystery novel and generate its cover illustration')">
+        ✨ Mystery & Cover Art
+      </button>
+      <button class="prompt-pill" onclick="sendSuggestion('What reading preferences or habits do you remember about me?')">
+        🧠 Memory Bank Preferences
+      </button>
+      <button class="prompt-pill" onclick="sendSuggestion('Show my saved reading list from my Firestore library')">
+        📚 Saved Reading List
+      </button>
+    </div>
+
+    <div class="input-area">
+      <textarea id="userInput" rows="1" placeholder="Ask for book recommendations, authors, or themes..." onkeydown="handleKeyDown(event)"></textarea>
+      <button id="sendBtn" class="btn-send" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </main>
+
+  <!-- Image Lightbox Modal -->
+  <div id="imageLightbox" class="lightbox-modal" onclick="closeLightbox()">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+      <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+      <img id="lightboxImg" src="" alt="Book Cover Preview" />
+      <p id="lightboxCaption" class="lightbox-caption"></p>
+    </div>
+  </div>
+
+  <script>
+    let currentSessionId = localStorage.getItem('concierge_session_id') || null;
+
+    if (currentSessionId) {
+      updateSessionBadge(currentSessionId);
+    }
+
+    function updateSessionBadge(id) {
+      const badge = document.getElementById('sessionBadge');
+      if (id) {
+        badge.innerText = `Session: ${id.substring(0, 8)}...`;
+      } else {
+        badge.innerText = 'Session: New';
+      }
+    }
+
+    function resetSession() {
+      currentSessionId = null;
+      localStorage.removeItem('concierge_session_id');
+      updateSessionBadge(null);
+      const container = document.getElementById('chatContainer');
+      container.innerHTML = `
+        <div id="welcomeCard" class="welcome-card">
+          <h2>Welcome to Book Concierge!</h2>
+          <p>Your intelligent reading assistant powered by Vertex AI Agent Platform & Memory Bank.</p>
+          <div class="suggestion-chips">
+            <div class="chip" onclick="sendSuggestion('Recommend 3 sci-fi masterpieces with rich world-building')">🚀 Sci-Fi Masterpieces</div>
+            <div class="chip" onclick="sendSuggestion('Find classic novels for a cozy autumn evening')">🍂 Cozy Classics</div>
+            <div class="chip" onclick="sendSuggestion('What books do you remember I like?')">🧠 Remembered Preferences</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+
+    function sendSuggestion(text) {
+      document.getElementById('userInput').value = text;
+      sendMessage();
+    }
+
+    function openLightbox(src, caption) {
+      const modal = document.getElementById('imageLightbox');
+      const img = document.getElementById('lightboxImg');
+      const cap = document.getElementById('lightboxCaption');
+      img.src = src;
+      cap.innerText = caption;
+      modal.classList.add('active');
+    }
+
+    function closeLightbox() {
+      const modal = document.getElementById('imageLightbox');
+      modal.classList.remove('active');
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('userInput');
+      const message = input.value.trim();
+      if (!message) return;
+
+      input.value = '';
+      const sendBtn = document.getElementById('sendBtn');
+      sendBtn.disabled = true;
+
+      // Hide welcome card
+      const welcomeCard = document.getElementById('welcomeCard');
+      if (welcomeCard) welcomeCard.remove();
+
+      const container = document.getElementById('chatContainer');
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Render user message wrapper with meta header
+      const userWrapper = document.createElement('div');
+      userWrapper.className = 'message-wrapper user';
+      userWrapper.innerHTML = `
+        <div class="message-meta">
+          <span>You</span>
+          <span class="meta-badge">Reader</span>
+          <span>• ${timeStr}</span>
+        </div>
+        <div class="message-content-container">
+          <div class="avatar">👤</div>
+          <div class="message-bubble">${escapeHtml(message)}</div>
+        </div>
+      `;
+      container.appendChild(userWrapper);
+
+      // Render agent placeholder with meta header & typing indicator
+      const agentWrapper = document.createElement('div');
+      agentWrapper.className = 'message-wrapper agent';
+      agentWrapper.innerHTML = `
+        <div class="message-meta">
+          <span>Book Concierge</span>
+          <span class="meta-badge">Librarian AI</span>
+          <span>• ${timeStr}</span>
+        </div>
+        <div class="message-content-container">
+          <div class="avatar">📚</div>
+          <div class="message-bubble">
+            <div class="typing-indicator">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      container.appendChild(agentWrapper);
+      container.scrollTop = container.scrollHeight;
+
+      const bubble = agentWrapper.querySelector('.message-bubble');
+      let agentResponseText = '';
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: message,
+            session_id: currentSessionId
+          })
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          bubble.innerHTML = `<span style="color: #f87171;">Error: ${escapeHtml(errText)}</span>`;
+          sendBtn.disabled = false;
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop(); // Keep remaining incomplete chunk
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.replace('data: ', '').trim();
+              if (!dataStr) continue;
+
+              try {
+                const parsed = JSON.parse(dataStr);
+                
+                // Handle session metadata
+                if (parsed.type === 'metadata' && parsed.session_id) {
+                  currentSessionId = parsed.session_id;
+                  localStorage.setItem('concierge_session_id', currentSessionId);
+                  updateSessionBadge(currentSessionId);
+                  continue;
+                }
+
+                if (parsed.error) {
+                  agentResponseText += `\n**Error:** ${parsed.error}`;
+                } else if (parsed.content && parsed.content.parts) {
+                  for (const part of parsed.content.parts) {
+                    if (part.text) {
+                      agentResponseText += part.text;
+                    }
+                  }
+                } else if (parsed.text) {
+                  agentResponseText += parsed.text;
+                }
+              } catch (e) {
+                agentResponseText += dataStr;
+              }
+
+              if (agentResponseText) {
+                bubble.innerHTML = marked.parse(agentResponseText);
+                // Enable click-to-zoom Lightbox on all rendered cover images
+                bubble.querySelectorAll('img').forEach(img => {
+                  img.onclick = () => openLightbox(img.src, img.alt || 'Book Cover Illustration');
+                });
+                container.scrollTop = container.scrollHeight;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        bubble.innerHTML = `<span style="color: #f87171;">Network Error: ${escapeHtml(err.message)}</span>`;
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.innerText = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
